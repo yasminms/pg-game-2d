@@ -22,8 +22,8 @@
 
 using namespace std;
 
-int g_gl_width = 800;
-int g_gl_height = 800;
+int g_gl_width = 900;
+int g_gl_height = 600;
 
 int columns = 9;
 int rows = 9;
@@ -32,82 +32,50 @@ float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
 
 GLFWwindow *g_window = NULL;
+glm::mat4 matrix = glm::mat4(1);
 
-// int loadTexture(unsigned int &texture, char *filename)
-// {
-// 	glGenTextures(1, &texture);
-// 	glBindTexture(GL_TEXTURE_2D, texture);
-
-// 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-// 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-// 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-// 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-// 	GLfloat max_aniso = 0.0f;
-// 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_aniso);
-// 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_aniso);
-
-// 	int width, height, nrChannels;
-
-// 	unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
-// 	if (data)
-// 	{
-// 		if (nrChannels == 4)
-// 		{
-// 			cout << "Alpha channel" << endl;
-// 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-// 		}
-// 		else
-// 		{
-// 			cout << "Without Alpha channel" << endl;
-// 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-// 		}
-// 		glGenerateMipmap(GL_TEXTURE_2D);
-// 	}
-// 	else
-// 	{
-// 		std::cout << "Failed to load texture" << std::endl;
-// 	}
-// 	stbi_image_free(data);
-// }
-
-bool load_texture(const char *file_name, GLuint *tex)
+void calculateDrawPosition(int column, int row, float &targetx, float &targety)
 {
-	int x, y, n;
-	int force_channels = 4;
+	targetx = column * (tileWidth / 2.0f) + row * (tileWidth / 2.0f);
+	targety = column * (tileHeight / 2.0f) - row * (tileHeight / 2.0f) + (g_gl_height / 2.0f) - (tileHeight / 2.0f);
+}
 
-	glEnable(GL_TEXTURE_2D);
+int loadTexture(unsigned int &texture, char *filename)
+{
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
-	unsigned char *image_data = stbi_load(file_name, &x, &y, &n, force_channels);
-
-	if (!image_data)
-	{
-		fprintf(stderr, "ERROR: could not load %s\n", file_name);
-		return false;
-	}
-
-	if ((x & (x - 1)) != 0 || (y & (y - 1)) != 0)
-	{
-		fprintf(stderr, "WARNING: texture %s is not power-of-2 dimensions\n", file_name);
-	}
-
-	glGenTextures(1, tex);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, *tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
 	GLfloat max_aniso = 0.0f;
-
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_aniso);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_aniso);
 
-	return true;
+	int width, height, nrChannels;
+
+	unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		if (nrChannels == 4)
+		{
+			cout << "Alpha channel" << endl;
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		}
+		else
+		{
+			cout << "Without Alpha channel" << endl;
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		}
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
 }
 
 int main()
@@ -119,20 +87,18 @@ int main()
 	glDepthFunc(GL_LESS);
 
 	GLuint tex;
-	// loadTexture(tex, "terrain.png");
-
-	load_texture("terrain.png", &tex);
+	loadTexture(tex, "terrain.png");
 
 	cout << "tileWidth: " << tileWidth << endl;
 	cout << "tileHeight: " << tileHeight << endl;
 
 	GLfloat vertices[] = {
-		(tileWidth / 2), 0.0f, ((1 / columns) / 2), 0.0f,			  // top
-		tileWidth, (tileHeight / 2), (1 / columns), ((1 / rows) / 2), // right
-		0.0f, (tileHeight / 2), 0.0f, ((1 / rows) / 2),				  // left
-		(tileWidth / 2), tileHeight, ((1 / columns) / 2), (1 / rows), // bottom
-		tileWidth, (tileHeight / 2), (1 / columns), ((1 / rows) / 2), // right
-		0.0f, (tileHeight / 2), 0.0f, ((1 / rows) / 2)				  // left
+		(tileWidth / 2.0f), 0.0f, 				((1.0f / columns) / 2.0f), 0.0f,				// top
+		tileWidth, (tileHeight / 2.0f), 		(1.0f / columns), ((1.0f / rows) / 2.0f),		// right
+		0.0f, (tileHeight / 2.0f), 0.0f, 		((1.0f / rows) / 2.0f),							// left
+		(tileWidth / 2.0f), tileHeight, 		((1.0f / columns) / 2.0f), (1.0f / rows),		// bottom
+		tileWidth, (tileHeight / 2.0f), 		(1.0f / columns), ((1.0f / rows) / 2.0f),		// right
+		0.0f, (tileHeight / 2.0f), 0.0f, 		((1.0f / rows) / 2.0f)							// left
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -210,11 +176,24 @@ int main()
 
 		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+		for (int r = 0; r < rows; r++)
+		{
+			for (int c = 0; c < columns; c++)
+			{
+				float targetx, targety;
+				calculateDrawPosition(c, r, targetx, targety);
 
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+				matrix = glm::translate(glm::mat4(1), glm::vec3(targetx, targety, 0));
+				glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, tex);
+				glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+			}
+		}
+
 		glBindVertexArray(0);
 
 		glfwPollEvents();
