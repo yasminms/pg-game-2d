@@ -34,10 +34,43 @@ float tileHeight = (float)(g_gl_height / rows);
 GLFWwindow *g_window = NULL;
 glm::mat4 matrix = glm::mat4(1);
 
+void cartesianToIsometric(float mx, float my, float &targetX, float &targetY)
+{
+	targetX = mx - my;
+	targetY = (mx + my) / 2;
+}
+
+void isometricToCartesian(float mx, float my, float &targetX, float &targetY)
+{
+	targetX = (2 * my + mx) / 2;
+	targetY = (2 * my - mx) / 2;
+}
+
+void getTileCoordinates(float mx, float my, float &targetX, float &targetY)
+{
+	targetX = floor(mx / tileHeight);
+	targetY = floor(my / tileHeight);
+}
+
+void onMouseClick(double &mx, double &my)
+{
+	mx -= (g_gl_width / 2.0f) - (tileWidth / 2.0f);
+	float x, y, finalX, finalY;
+
+	isometricToCartesian(mx, my, x, y);
+
+	getTileCoordinates(x, y, finalX, finalY);
+
+	cout << "x: " << finalX << " - y: " << finalY << endl;
+}
+
 void calculateDrawPosition(int column, int row, float &targetx, float &targety)
 {
-	targetx = column * (tileWidth / 2.0f) + row * (tileWidth / 2.0f);
-	targety = column * (tileHeight / 2.0f) - row * (tileHeight / 2.0f) + (g_gl_height / 2.0f) - (tileHeight / 2.0f);
+	targetx = (column - row) * (tileWidth / 2.0f) + (g_gl_width / 2.0f) - (tileWidth / 2.0f);
+	targety = (column + row) * (tileHeight / 2.0f);
+	// targetx = column * (tileWidth / 2.0f) + row * (tileWidth / 2.0f);
+	// targety = column * (tileHeight / 2.0f) - row * (tileHeight / 2.0f);
+	// targety = column * (tileHeight / 2.0f) - row * (tileHeight / 2.0f) + (g_gl_height / 2.0f) - (tileHeight / 2.0f);
 }
 
 int loadTexture(unsigned int &texture, char *filename)
@@ -93,12 +126,12 @@ int main()
 	cout << "tileHeight: " << tileHeight << endl;
 
 	GLfloat vertices[] = {
-		(tileWidth / 2.0f), 0.0f, 				((1.0f / columns) / 2.0f), 0.0f,				// top
-		tileWidth, (tileHeight / 2.0f), 		(1.0f / columns), ((1.0f / rows) / 2.0f),		// right
-		0.0f, (tileHeight / 2.0f), 0.0f, 		((1.0f / rows) / 2.0f),							// left
-		(tileWidth / 2.0f), tileHeight, 		((1.0f / columns) / 2.0f), (1.0f / rows),		// bottom
-		tileWidth, (tileHeight / 2.0f), 		(1.0f / columns), ((1.0f / rows) / 2.0f),		// right
-		0.0f, (tileHeight / 2.0f), 0.0f, 		((1.0f / rows) / 2.0f)							// left
+		(tileWidth / 2.0f), 0.0f, ((1.0f / columns) / 2.0f), 0.0f,				  // top
+		tileWidth, (tileHeight / 2.0f), (1.0f / columns), ((1.0f / rows) / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, ((1.0f / rows) / 2.0f),				  // left
+		(tileWidth / 2.0f), tileHeight, ((1.0f / columns) / 2.0f), (1.0f / rows), // bottom
+		tileWidth, (tileHeight / 2.0f), (1.0f / columns), ((1.0f / rows) / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, ((1.0f / rows) / 2.0f)					  // left
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -165,6 +198,17 @@ int main()
 
 	while (!glfwWindowShouldClose(g_window))
 	{
+		glfwPollEvents();
+		double mx, my;
+		glfwGetCursorPos(g_window, &mx, &my);
+
+		const int state = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
+
+		if (state == GLFW_PRESS)
+		{
+			onMouseClick(mx, my);
+		}
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -195,8 +239,6 @@ int main()
 		}
 
 		glBindVertexArray(0);
-
-		glfwPollEvents();
 
 		glfwSwapBuffers(g_window);
 	}
