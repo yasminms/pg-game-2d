@@ -25,14 +25,47 @@ using namespace std;
 int g_gl_width = 900;
 int g_gl_height = 600;
 
-int columns = 9;
-int rows = 9;
+const int columns = 9;
+const int rows = 9;
 
 float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
 
 GLFWwindow *g_window = NULL;
 glm::mat4 matrix = glm::mat4(1);
+
+int map[rows][columns][2];
+
+void generateMap()
+{
+	for (int row = 0; row < rows; row++)
+	{
+		for (int column = 0; column < columns; column++)
+		{
+			map[row][column][0] = 0; //tile type
+			map[row][column][1] = (rand() % 3) + 1; //hidden tile
+		}
+	}
+}
+
+void getTileTexture(int tileType, float &spriteOffsetY)
+{
+	switch (tileType)
+	{
+	case 0:
+		spriteOffsetY = 0.0f;
+		break;
+	case 1:
+		spriteOffsetY = 0.2f;
+		break;
+	case 2:
+		spriteOffsetY = 0.4f;
+		break;
+	default:
+		spriteOffsetY = 0.6f;
+		break;
+	}
+}
 
 void cartesianToIsometric(float mx, float my, float &targetX, float &targetY)
 {
@@ -46,7 +79,7 @@ void isometricToCartesian(float mx, float my, float &targetX, float &targetY)
 	targetY = (2 * my - mx) / 2;
 }
 
-void getTileCoordinates(float mx, float my, float &targetX, float &targetY)
+void getTileCoordinates(float mx, float my, int &targetX, int &targetY)
 {
 	targetX = floor(mx / tileHeight);
 	targetY = floor(my / tileHeight);
@@ -55,11 +88,15 @@ void getTileCoordinates(float mx, float my, float &targetX, float &targetY)
 void onMouseClick(double &mx, double &my)
 {
 	mx -= (g_gl_width / 2.0f) - (tileWidth / 2.0f);
-	float x, y, finalX, finalY;
+
+	float x, y;
+	int finalX, finalY;
 
 	isometricToCartesian(mx, my, x, y);
 
 	getTileCoordinates(x, y, finalX, finalY);
+
+	map[finalY][finalX][0] = map[finalY][finalX][1];
 
 	cout << "x: " << finalX << " - y: " << finalY << endl;
 }
@@ -113,6 +150,10 @@ int loadTexture(unsigned int &texture, char *filename)
 
 int main()
 {
+	srand(time(NULL));
+
+	generateMap();
+
 	restart_gl_log();
 	start_gl();
 
@@ -120,18 +161,18 @@ int main()
 	glDepthFunc(GL_LESS);
 
 	GLuint tex;
-	loadTexture(tex, "terrain.png");
+	loadTexture(tex, "tilemap.png");
 
 	cout << "tileWidth: " << tileWidth << endl;
 	cout << "tileHeight: " << tileHeight << endl;
 
 	GLfloat vertices[] = {
-		(tileWidth / 2.0f), 0.0f, ((1.0f / columns) / 2.0f), 0.0f,				  // top
-		tileWidth, (tileHeight / 2.0f), (1.0f / columns), ((1.0f / rows) / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, ((1.0f / rows) / 2.0f),				  // left
-		(tileWidth / 2.0f), tileHeight, ((1.0f / columns) / 2.0f), (1.0f / rows), // bottom
-		tileWidth, (tileHeight / 2.0f), (1.0f / columns), ((1.0f / rows) / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, ((1.0f / rows) / 2.0f)					  // left
+		(tileWidth / 2.0f), 0.0f, 			0.5f, 0.0f, // top
+		tileWidth, (tileHeight / 2.0f), 	1, (0.20f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 			0.0f, (0.20f / 2.0f), // left
+		(tileWidth / 2.0f), tileHeight, 	0.5f, 0.20f, // bottom
+		tileWidth, (tileHeight / 2.0f), 	1, (0.20f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 			0.0f, (0.20f / 2.0f) // left
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -212,7 +253,7 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glViewport(0, 0, g_gl_width * 2, g_gl_height * 2);
+		glViewport(0, 0, g_gl_width, g_gl_height);
 
 		glUseProgram(shader_programme);
 
@@ -224,6 +265,12 @@ int main()
 		{
 			for (int c = 0; c < columns; c++)
 			{
+				float spriteOffsetY = 0.0f;
+
+				int tileType = map[r][c][0];
+
+				getTileTexture(tileType, spriteOffsetY);
+
 				float targetx, targety;
 				calculateDrawPosition(c, r, targetx, targety);
 
@@ -233,6 +280,7 @@ int main()
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, tex);
 				glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), spriteOffsetY);
 
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 			}
