@@ -25,8 +25,20 @@ using namespace std;
 int g_gl_width = 900;
 int g_gl_height = 600;
 
-const int columns = 9;
-const int rows = 9;
+enum TileType
+{
+	Initial = 0,
+	Grass = 1,
+	Healing = 2,
+	Damage = 3,
+	Spawn = 4,
+	Key = 5,
+	End = 6
+};
+
+const int columns = 9, rows = 9;
+
+const int healingAmount = 2, damageAmount = 5, keyAmount = 1;
 
 float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
@@ -36,33 +48,56 @@ glm::mat4 matrix = glm::mat4(1);
 
 int map[rows][columns][2];
 
+void generateSpecialTiles(TileType tileType, int amount)
+{
+	for (int i = 0; i < amount; i++)
+	{
+		int randomRow, randomColumn;
+
+		do
+		{
+			randomRow = rand() % rows;
+			randomColumn = rand() % columns;
+
+		} while (map[randomRow][randomColumn][1] != TileType::Grass);
+
+		map[randomRow][randomColumn][1] = tileType; // hidden tile
+	}
+}
+
 void generateMap()
 {
 	for (int row = 0; row < rows; row++)
 	{
 		for (int column = 0; column < columns; column++)
 		{
-			map[row][column][0] = 0; //tile type
-			map[row][column][1] = (rand() % 3) + 1; //hidden tile
+			map[row][column][0] = TileType::Initial; // tile type
+			map[row][column][1] = TileType::Grass;	 // hidden tile
 		}
 	}
+
+	map[0][0][0] = TileType::Spawn;
+	map[rows - 1][columns - 1][0] = TileType::End;
 }
 
-void getTileTexture(int tileType, float &spriteOffsetY)
+void getTileTexture(TileType tileType, float &spriteOffsetY)
 {
 	switch (tileType)
 	{
-	case 0:
+	case TileType::Initial:
 		spriteOffsetY = 0.0f;
 		break;
-	case 1:
+	case TileType::Grass:
 		spriteOffsetY = 0.2f;
 		break;
-	case 2:
+	case TileType::Healing:
 		spriteOffsetY = 0.4f;
 		break;
-	default:
+	case TileType::Damage:
 		spriteOffsetY = 0.6f;
+		break;
+	default:
+		cout << "Tile Type not found!";
 		break;
 	}
 }
@@ -153,6 +188,8 @@ int main()
 	srand(time(NULL));
 
 	generateMap();
+	generateSpecialTiles(TileType::Healing, healingAmount);
+	generateSpecialTiles(TileType::Damage, damageAmount);
 
 	restart_gl_log();
 	start_gl();
@@ -167,12 +204,12 @@ int main()
 	cout << "tileHeight: " << tileHeight << endl;
 
 	GLfloat vertices[] = {
-		(tileWidth / 2.0f), 0.0f, 			0.5f, 0.0f, // top
-		tileWidth, (tileHeight / 2.0f), 	1, (0.20f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 			0.0f, (0.20f / 2.0f), // left
-		(tileWidth / 2.0f), tileHeight, 	0.5f, 0.20f, // bottom
-		tileWidth, (tileHeight / 2.0f), 	1, (0.20f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 			0.0f, (0.20f / 2.0f) // left
+		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,			   // top
+		tileWidth, (tileHeight / 2.0f), 1, (0.20f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.20f / 2.0f),   // left
+		(tileWidth / 2.0f), tileHeight, 0.5f, 0.20f,	   // bottom
+		tileWidth, (tileHeight / 2.0f), 1, (0.20f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.20f / 2.0f)	   // left
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -253,7 +290,7 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glViewport(0, 0, g_gl_width, g_gl_height);
+		glViewport(0, 0, g_gl_width * 2, g_gl_height * 2);
 
 		glUseProgram(shader_programme);
 
@@ -261,18 +298,18 @@ int main()
 
 		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-		for (int r = 0; r < rows; r++)
+		for (int row = 0; row < rows; row++)
 		{
-			for (int c = 0; c < columns; c++)
+			for (int column = 0; column < columns; column++)
 			{
 				float spriteOffsetY = 0.0f;
 
-				int tileType = map[r][c][0];
+				TileType tileType = (TileType)map[row][column][1];
 
 				getTileTexture(tileType, spriteOffsetY);
 
 				float targetx, targety;
-				calculateDrawPosition(c, r, targetx, targety);
+				calculateDrawPosition(column, row, targetx, targety);
 
 				matrix = glm::translate(glm::mat4(1), glm::vec3(targetx, targety, 0));
 				glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
