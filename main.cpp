@@ -39,6 +39,8 @@ const int columns = 9, rows = 9;
 
 const int healingAmount = 2, damageAmount = 5, keyAmount = 1;
 
+int health = 2, currentRow = 8, currentColumn = 0;
+
 float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
 
@@ -128,6 +130,39 @@ void getTileCoordinates(float mx, float my, int &targetX, int &targetY)
 	targetY = floor(my / tileHeight);
 }
 
+void showHiddenTile(int row, int column)
+{
+	cout << "mostrando tile row: " << row << " - column: " << column << endl;
+	map[row][column][0] = map[row][column][1];
+}
+
+void showTilePath(int sourceRow, int sourceColumn, int targetRow, int targetColumn)
+{
+	if (sourceRow > targetRow)
+	{
+		int tempRow = sourceRow;
+		sourceRow = targetRow;
+		targetRow = tempRow;
+	}
+
+	if (sourceColumn > targetColumn)
+	{
+		int tempColumn = sourceColumn;
+		sourceColumn = targetColumn;
+		targetColumn = tempColumn;
+	}
+
+	for (int row = sourceRow; row <= targetRow; row++)
+	{
+		showHiddenTile(row, sourceColumn);
+	}
+
+	for (int column = sourceColumn; column <= targetColumn; column++)
+	{
+		showHiddenTile(targetRow, column);
+	}
+}
+
 void onMouseClick(double &mx, double &my)
 {
 	mx -= (g_gl_width / 2.0f) - (tileWidth / 2.0f);
@@ -139,9 +174,18 @@ void onMouseClick(double &mx, double &my)
 
 	getTileCoordinates(x, y, finalX, finalY);
 
-	map[finalY][finalX][0] = map[finalY][finalX][1];
+	if (finalY >= rows || finalX >= columns || finalY < 0 || finalX < 0)
+	{
+		return;
+	}
 
-	cout << "x: " << finalX << " - y: " << finalY << endl;
+	cout << "currentRow: " << currentRow << " - currentColumn: " << currentColumn << endl;
+	cout << "finalY: " << finalY << " - finalX: " << finalX << endl;
+
+	showTilePath(currentRow, currentColumn, finalY, finalX);
+
+	currentRow = finalY;
+	currentColumn = finalX;
 }
 
 void calculateDrawPosition(int column, int row, float &targetx, float &targety)
@@ -213,12 +257,12 @@ int main()
 	cout << "tileHeight: " << tileHeight << endl;
 
 	GLfloat vertices[] = {
-		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,			   	// top
+		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
 		tileWidth, (tileHeight / 2.0f), 1, (0.1667f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f),   // left
-		(tileWidth / 2.0f), tileHeight, 0.5f, 0.1667f,	   // bottom
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f),	 // left
+		(tileWidth / 2.0f), tileHeight, 0.5f, 0.1667f,		 // bottom
 		tileWidth, (tileHeight / 2.0f), 1, (0.1667f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f)	   // left
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f)	 // left
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -283,6 +327,8 @@ int main()
 		return false;
 	}
 
+	bool pressedMouse = false;
+
 	while (!glfwWindowShouldClose(g_window))
 	{
 		glfwPollEvents();
@@ -293,13 +339,19 @@ int main()
 
 		if (state == GLFW_PRESS)
 		{
+			pressedMouse = true;
+		}
+		else if (state == GLFW_RELEASE && pressedMouse)
+		{
 			onMouseClick(mx, my);
+
+			pressedMouse = false;
 		}
 
 		glClearColor(0.69f, 0.91f, 0.98f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glViewport(0, 0, g_gl_width, g_gl_height);
+		glViewport(0, 0, g_gl_width * 2, g_gl_height * 2);
 
 		glUseProgram(shader_programme);
 
