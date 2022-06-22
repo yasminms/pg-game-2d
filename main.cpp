@@ -22,7 +22,7 @@
 
 using namespace std;
 
-int g_gl_width = 900;
+int g_gl_width = 1200;
 int g_gl_height = 600;
 
 enum TileType
@@ -31,9 +31,8 @@ enum TileType
 	Grass = 1,
 	Healing = 2,
 	Damage = 3,
-	Spawn = 4,
-	Key = 5,
-	End = 6
+	Key = 4,
+	Default = 5
 };
 
 const int columns = 9, rows = 9;
@@ -76,8 +75,11 @@ void generateMap()
 		}
 	}
 
-	map[0][0][0] = TileType::Spawn;
-	map[rows - 1][columns - 1][0] = TileType::End;
+	map[rows - 1][0][0] = TileType::Default;
+	map[rows - 1][0][1] = TileType::Default;
+
+	map[0][columns - 1][0] = TileType::Default;
+	map[0][columns - 1][1] = TileType::Default;
 }
 
 void getTileTexture(TileType tileType, float &spriteOffsetY)
@@ -88,13 +90,19 @@ void getTileTexture(TileType tileType, float &spriteOffsetY)
 		spriteOffsetY = 0.0f;
 		break;
 	case TileType::Grass:
-		spriteOffsetY = 0.2f;
+		spriteOffsetY = 0.1667f;
 		break;
 	case TileType::Healing:
-		spriteOffsetY = 0.4f;
+		spriteOffsetY = 0.3334f;
 		break;
 	case TileType::Damage:
-		spriteOffsetY = 0.6f;
+		spriteOffsetY = 0.5001f;
+		break;
+	case TileType::Key:
+		spriteOffsetY = 0.6668f;
+		break;
+	case TileType::Default:
+		spriteOffsetY = 0.8335f;
 		break;
 	default:
 		cout << "Tile Type not found!";
@@ -190,6 +198,7 @@ int main()
 	generateMap();
 	generateSpecialTiles(TileType::Healing, healingAmount);
 	generateSpecialTiles(TileType::Damage, damageAmount);
+	generateSpecialTiles(TileType::Key, keyAmount);
 
 	restart_gl_log();
 	start_gl();
@@ -198,18 +207,18 @@ int main()
 	glDepthFunc(GL_LESS);
 
 	GLuint tex;
-	loadTexture(tex, "tilemap.png");
+	loadTexture(tex, "texture.png");
 
 	cout << "tileWidth: " << tileWidth << endl;
 	cout << "tileHeight: " << tileHeight << endl;
 
 	GLfloat vertices[] = {
-		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,			   // top
-		tileWidth, (tileHeight / 2.0f), 1, (0.20f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, (0.20f / 2.0f),   // left
-		(tileWidth / 2.0f), tileHeight, 0.5f, 0.20f,	   // bottom
-		tileWidth, (tileHeight / 2.0f), 1, (0.20f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, (0.20f / 2.0f)	   // left
+		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,			   	// top
+		tileWidth, (tileHeight / 2.0f), 1, (0.1667f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f),   // left
+		(tileWidth / 2.0f), tileHeight, 0.5f, 0.1667f,	   // bottom
+		tileWidth, (tileHeight / 2.0f), 1, (0.1667f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f)	   // left
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -287,10 +296,10 @@ int main()
 			onMouseClick(mx, my);
 		}
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(0.69f, 0.91f, 0.98f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glViewport(0, 0, g_gl_width * 2, g_gl_height * 2);
+		glViewport(0, 0, g_gl_width, g_gl_height);
 
 		glUseProgram(shader_programme);
 
@@ -304,7 +313,7 @@ int main()
 			{
 				float spriteOffsetY = 0.0f;
 
-				TileType tileType = (TileType)map[row][column][1];
+				TileType tileType = (TileType)map[row][column][0];
 
 				getTileTexture(tileType, spriteOffsetY);
 
