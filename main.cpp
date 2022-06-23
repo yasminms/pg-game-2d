@@ -41,6 +41,8 @@ const int healingAmount = 3, damageAmount = 10, keyAmount = 1;
 
 int health = 2, currentRow = 8, currentColumn = 0;
 
+float charOffsetY = 0.0f, charOffsetX = 0.0f;
+
 float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
 
@@ -142,7 +144,9 @@ void showTilePath(int sourceRow, int sourceColumn, int targetRow, int targetColu
 		{
 			showHiddenTile(row, sourceColumn);
 		}
-	} else {
+	}
+	else
+	{
 		for (int row = sourceRow; row >= targetRow; row--)
 		{
 			showHiddenTile(row, sourceColumn);
@@ -155,7 +159,9 @@ void showTilePath(int sourceRow, int sourceColumn, int targetRow, int targetColu
 		{
 			showHiddenTile(targetRow, column);
 		}
-	} else {
+	}
+	else
+	{
 		for (int column = sourceColumn; column >= targetColumn; column--)
 		{
 			showHiddenTile(targetRow, column);
@@ -179,8 +185,6 @@ void onMouseClick(double &mx, double &my)
 		return;
 	}
 
-	// cout << "finalY: " << finalY << " - finalX: " << finalX << endl;
-
 	showHiddenTile(finalY, finalX);
 
 	showTilePath(currentRow, currentColumn, finalY, finalX);
@@ -202,8 +206,8 @@ int loadTexture(unsigned int &texture, char *filename)
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
@@ -230,7 +234,7 @@ int loadTexture(unsigned int &texture, char *filename)
 	}
 	else
 	{
-		std::cout << "Failed to load texture" << std::endl;
+		cout << "Failed to load texture" << endl;
 	}
 	stbi_image_free(data);
 }
@@ -247,8 +251,8 @@ int main()
 	restart_gl_log();
 	start_gl();
 
-	glEnable(GL_DEPTH_TEST); // enable depth-testing
-	glDepthFunc(GL_LESS);
+	// glEnable(GL_DEPTH_TEST); // enable depth-testing
+	// glDepthFunc(GL_LESS);
 
 	GLuint tex;
 	loadTexture(tex, "texture.png");
@@ -256,7 +260,7 @@ int main()
 	GLuint tex2;
 	loadTexture(tex2, "spritesheet.png");
 
-	GLfloat vertices[] = {
+	GLfloat tileVertices[] = {
 		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
 		tileWidth, (tileHeight / 2.0f), 1, (0.1667f / 2.0f), // right
 		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f),	 // left
@@ -266,13 +270,12 @@ int main()
 	};
 
 	GLfloat charVertices[] = {
-        0.0f, 0.0f,         	0.0f, 0.0f,
-        71.667f, 0.0f,        	0.333f, 0.0f,
-        0.0f, 106.25f,        	0.0f, 0.25f,
-        71.667f, 0.0f,        	0.333f, 0.0f,
-        0.0f, 106.25f,			0.0f, 0.25f,
-        71.667f, 106.25f,     	0.333f, 0.25f
-    };
+		0.0f, 0.0f, 0.0f, 0.0f,
+		65.0f, 0.0f, 0.333f, 0.0f,
+		0.0f, 106.25f, 0.0f, 0.25f,
+		65.0f, 0.0f, 0.333f, 0.0f,
+		0.0f, 106.25f, 0.0f, 0.25f,
+		65.0f, 106.25f, 0.333f, 0.25f};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
 
@@ -283,7 +286,7 @@ int main()
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tileVertices), tileVertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLfloat *)0);
 	glEnableVertexAttribArray(0);
@@ -353,25 +356,59 @@ int main()
 	}
 
 	bool pressedMouse = false;
+	float stepsX = currentColumn, stepsY = currentRow;
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	while (!glfwWindowShouldClose(g_window))
 	{
 		glfwPollEvents();
-		double mx, my;
-		glfwGetCursorPos(g_window, &mx, &my);
 
-		const int state = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
+		// double mx, my;
+		// glfwGetCursorPos(g_window, &mx, &my);
 
-		if (state == GLFW_PRESS)
+		// const int state = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
+
+		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_RIGHT))
 		{
-			pressedMouse = true;
+			stepsX += 0.05f;
+			charOffsetX += (1.0f / 3.0f);
+			charOffsetY = 0.50f;
 		}
-		else if (state == GLFW_RELEASE && pressedMouse)
+		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_LEFT))
 		{
-			onMouseClick(mx, my);
-
-			pressedMouse = false;
+			stepsX -= 0.05f;
+			charOffsetX += (1.0f / 3.0f);
+			charOffsetY = 0.25f;
 		}
+		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_UP))
+		{
+			stepsY -= 0.05f;
+			charOffsetX += (1.0f / 3.0f);
+			charOffsetY = 0.75f;
+		}
+		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_DOWN))
+		{
+			stepsY += 0.05f;
+			charOffsetX += (1.0f / 3.0f);
+			charOffsetY = 0.0f;
+		}
+		if (GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_LEFT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_RIGHT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_UP) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_DOWN))
+		{
+			charOffsetX = (1.0f / 3.0f);
+		}
+
+		// if (state == GLFW_PRESS)
+		// {
+		// 	pressedMouse = true;
+		// }
+		// else if (state == GLFW_RELEASE && pressedMouse)
+		// {
+		// 	onMouseClick(mx, my);
+
+		// 	pressedMouse = false;
+		// }
 
 		glClearColor(0.69f, 0.91f, 0.98f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -406,6 +443,7 @@ int main()
 				glBindTexture(GL_TEXTURE_2D, tex);
 				glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
 				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), spriteOffsetY);
+				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), 0.0f);
 
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 			}
@@ -417,6 +455,9 @@ int main()
 
 		float charX, charY;
 
+		currentColumn = (int)stepsX;
+		currentRow = (int)stepsY;
+
 		calculateDrawPosition(currentColumn, currentRow, charX, charY);
 
 		matrix = glm::translate(glm::mat4(1), glm::vec3(charX + ((tileWidth / 3.5f)), charY - (tileHeight * 0.75f), 1));
@@ -426,7 +467,8 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, tex2);
 
 		glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
-		glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), 0.0f);
+		glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), charOffsetY);
+		glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), charOffsetX);
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
