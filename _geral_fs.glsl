@@ -7,5 +7,11 @@ uniform sampler2D sprite;
 uniform float sprite_offset_y;
         
 void main() {
-    frag_color = texture(sprite, vec2(text_map.x, text_map.y + sprite_offset_y));
+    vec4 texel = texture(sprite, vec2(text_map.x, text_map.y + sprite_offset_y));
+    
+    if (texel.a < 0.5) {
+        discard;
+    }
+
+    frag_color = texel;
 }

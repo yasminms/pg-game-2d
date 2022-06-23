@@ -37,7 +37,7 @@ enum TileType
 
 const int columns = 9, rows = 9;
 
-const int healingAmount = 2, damageAmount = 5, keyAmount = 1;
+const int healingAmount = 3, damageAmount = 10, keyAmount = 1;
 
 int health = 2, currentRow = 8, currentColumn = 0;
 
@@ -59,7 +59,6 @@ void generateSpecialTiles(TileType tileType, int amount)
 		{
 			randomRow = rand() % rows;
 			randomColumn = rand() % columns;
-
 		} while (map[randomRow][randomColumn][1] != TileType::Grass);
 
 		map[randomRow][randomColumn][1] = tileType; // hidden tile
@@ -132,34 +131,35 @@ void getTileCoordinates(float mx, float my, int &targetX, int &targetY)
 
 void showHiddenTile(int row, int column)
 {
-	cout << "mostrando tile row: " << row << " - column: " << column << endl;
 	map[row][column][0] = map[row][column][1];
 }
 
 void showTilePath(int sourceRow, int sourceColumn, int targetRow, int targetColumn)
 {
-	if (sourceRow > targetRow)
+	if (sourceRow < targetRow)
 	{
-		int tempRow = sourceRow;
-		sourceRow = targetRow;
-		targetRow = tempRow;
+		for (int row = sourceRow; row <= targetRow; row++)
+		{
+			showHiddenTile(row, sourceColumn);
+		}
+	} else {
+		for (int row = sourceRow; row >= targetRow; row--)
+		{
+			showHiddenTile(row, sourceColumn);
+		}
 	}
 
-	if (sourceColumn > targetColumn)
+	if (sourceColumn < targetColumn)
 	{
-		int tempColumn = sourceColumn;
-		sourceColumn = targetColumn;
-		targetColumn = tempColumn;
-	}
-
-	for (int row = sourceRow; row <= targetRow; row++)
-	{
-		showHiddenTile(row, sourceColumn);
-	}
-
-	for (int column = sourceColumn; column <= targetColumn; column++)
-	{
-		showHiddenTile(targetRow, column);
+		for (int column = sourceColumn; column <= targetColumn; column++)
+		{
+			showHiddenTile(targetRow, column);
+		}
+	} else {
+		for (int column = sourceColumn; column >= targetColumn; column--)
+		{
+			showHiddenTile(targetRow, column);
+		}
 	}
 }
 
@@ -179,22 +179,22 @@ void onMouseClick(double &mx, double &my)
 		return;
 	}
 
-	cout << "currentRow: " << currentRow << " - currentColumn: " << currentColumn << endl;
-	cout << "finalY: " << finalY << " - finalX: " << finalX << endl;
+	// cout << "finalY: " << finalY << " - finalX: " << finalX << endl;
+
+	showHiddenTile(finalY, finalX);
 
 	showTilePath(currentRow, currentColumn, finalY, finalX);
 
 	currentRow = finalY;
 	currentColumn = finalX;
+
+	cout << "currentRow: " << currentRow << " - currentColumn: " << currentColumn << endl;
 }
 
 void calculateDrawPosition(int column, int row, float &targetx, float &targety)
 {
 	targetx = (column - row) * (tileWidth / 2.0f) + (g_gl_width / 2.0f) - (tileWidth / 2.0f);
 	targety = (column + row) * (tileHeight / 2.0f);
-	// targetx = column * (tileWidth / 2.0f) + row * (tileWidth / 2.0f);
-	// targety = column * (tileHeight / 2.0f) - row * (tileHeight / 2.0f);
-	// targety = column * (tileHeight / 2.0f) - row * (tileHeight / 2.0f) + (g_gl_height / 2.0f) - (tileHeight / 2.0f);
 }
 
 int loadTexture(unsigned int &texture, char *filename)
@@ -253,8 +253,8 @@ int main()
 	GLuint tex;
 	loadTexture(tex, "texture.png");
 
-	cout << "tileWidth: " << tileWidth << endl;
-	cout << "tileHeight: " << tileHeight << endl;
+	GLuint tex2;
+	loadTexture(tex2, "spritesheet.png");
 
 	GLfloat vertices[] = {
 		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
@@ -264,6 +264,15 @@ int main()
 		tileWidth, (tileHeight / 2.0f), 1, (0.1667f / 2.0f), // right
 		0.0f, (tileHeight / 2.0f), 0.0f, (0.1667f / 2.0f)	 // left
 	};
+
+	GLfloat charVertices[] = {
+        0.0f, 0.0f,         	0.0f, 0.0f,
+        71.667f, 0.0f,        	0.333f, 0.0f,
+        0.0f, 106.25f,        	0.0f, 0.25f,
+        71.667f, 0.0f,        	0.333f, 0.0f,
+        0.0f, 106.25f,			0.0f, 0.25f,
+        71.667f, 106.25f,     	0.333f, 0.25f
+    };
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
 
@@ -280,6 +289,22 @@ int main()
 	glEnableVertexAttribArray(0);
 
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLfloat *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	GLuint VBO2, VAO2;
+
+	glGenVertexArrays(1, &VAO2);
+	glGenBuffers(1, &VBO2);
+
+	glBindVertexArray(VAO2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(charVertices), charVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	char vertex_shader[1024 * 256];
@@ -355,6 +380,8 @@ int main()
 
 		glUseProgram(shader_programme);
 
+		glBindVertexArray(0);
+
 		glBindVertexArray(VAO);
 
 		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -383,6 +410,25 @@ int main()
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 			}
 		}
+
+		glBindVertexArray(0);
+
+		glBindVertexArray(VAO2);
+
+		float charX, charY;
+
+		calculateDrawPosition(currentColumn, currentRow, charX, charY);
+
+		matrix = glm::translate(glm::mat4(1), glm::vec3(charX + ((tileWidth / 3.5f)), charY - (tileHeight * 0.75f), 1));
+		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex2);
+
+		glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+		glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), 0.0f);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glBindVertexArray(0);
 
