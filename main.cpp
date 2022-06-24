@@ -15,9 +15,6 @@
 #define GL_LOG_FILE "gl.log"
 #include <iostream>
 #include <vector>
-#include "TileMap.h"
-#include "DiamondView.h"
-#include "ltMath.h"
 #include <fstream>
 
 using namespace std;
