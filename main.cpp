@@ -258,7 +258,7 @@ int main()
 	loadTexture(tex, "texture.png");
 
 	GLuint tex2;
-	loadTexture(tex2, "spritesheet.png");
+	loadTexture(tex2, "spritesheet-teste.png");
 
 	GLfloat tileVertices[] = {
 		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
@@ -271,11 +271,11 @@ int main()
 
 	GLfloat charVertices[] = {
 		0.0f, 0.0f, 0.0f, 0.0f,
-		65.0f, 0.0f, 0.333f, 0.0f,
+		65.0f, 0.0f, 0.03333333333f, 0.0f,
 		0.0f, 106.25f, 0.0f, 0.25f,
-		65.0f, 0.0f, 0.333f, 0.0f,
+		65.0f, 0.0f, 0.03333333333f, 0.0f,
 		0.0f, 106.25f, 0.0f, 0.25f,
-		65.0f, 106.25f, 0.333f, 0.25f};
+		65.0f, 106.25f, 0.03333333333f, 0.25f};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
 
@@ -365,38 +365,29 @@ int main()
 	{
 		glfwPollEvents();
 
-		// double mx, my;
-		// glfwGetCursorPos(g_window, &mx, &my);
-
-		// const int state = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
-
 		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_RIGHT))
 		{
 			stepsX += 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.50f;
-		}
-		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_LEFT))
+		} else if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_LEFT))
 		{
 			stepsX -= 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.25f;
-		}
-		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_UP))
+		} else if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_UP))
 		{
 			stepsY -= 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.75f;
-		}
-		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_DOWN))
+		} else if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_DOWN))
 		{
 			stepsY += 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.0f;
-		}
-		if (GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_LEFT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_RIGHT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_UP) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_DOWN))
+		} else if (GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_LEFT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_RIGHT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_UP) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_DOWN))
 		{
-			charOffsetX = (1.0f / 3.0f);
+			charOffsetX = (1.0f / 30.0f) * 10;
 		}
 
 		// if (state == GLFW_PRESS)
@@ -441,6 +432,7 @@ int main()
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, tex);
+
 				glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
 				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), spriteOffsetY);
 				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), 0.0f);
