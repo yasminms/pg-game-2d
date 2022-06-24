@@ -15,9 +15,6 @@
 #define GL_LOG_FILE "gl.log"
 #include <iostream>
 #include <vector>
-#include "TileMap.h"
-#include "DiamondView.h"
-#include "ltMath.h"
 #include <fstream>
 
 using namespace std;
@@ -37,7 +34,7 @@ enum TileType
 
 const int columns = 9, rows = 9;
 
-const int healingAmount = 3, damageAmount = 10, keyAmount = 1;
+const int healingAmount = 3, damageAmount = 6, keyAmount = 1;
 
 int health = 2, currentRow = 8, currentColumn = 0;
 
@@ -85,6 +82,11 @@ void generateMap()
 	map[0][columns - 1][1] = TileType::Default;
 }
 
+bool isValidStep(int row, int column)
+{
+	return (row >= 0 && row < rows) && (column >= 0 && column < columns);
+}
+
 void getTileTexture(TileType tileType, float &spriteOffsetY)
 {
 	switch (tileType)
@@ -113,86 +115,14 @@ void getTileTexture(TileType tileType, float &spriteOffsetY)
 	}
 }
 
-void cartesianToIsometric(float mx, float my, float &targetX, float &targetY)
-{
-	targetX = mx - my;
-	targetY = (mx + my) / 2;
-}
-
-void isometricToCartesian(float mx, float my, float &targetX, float &targetY)
-{
-	targetX = (2 * my + mx) / 2;
-	targetY = (2 * my - mx) / 2;
-}
-
-void getTileCoordinates(float mx, float my, int &targetX, int &targetY)
-{
-	targetX = floor(mx / tileHeight);
-	targetY = floor(my / tileHeight);
-}
-
 void showHiddenTile(int row, int column)
 {
-	map[row][column][0] = map[row][column][1];
-}
-
-void showTilePath(int sourceRow, int sourceColumn, int targetRow, int targetColumn)
-{
-	if (sourceRow < targetRow)
-	{
-		for (int row = sourceRow; row <= targetRow; row++)
-		{
-			showHiddenTile(row, sourceColumn);
-		}
-	}
-	else
-	{
-		for (int row = sourceRow; row >= targetRow; row--)
-		{
-			showHiddenTile(row, sourceColumn);
-		}
-	}
-
-	if (sourceColumn < targetColumn)
-	{
-		for (int column = sourceColumn; column <= targetColumn; column++)
-		{
-			showHiddenTile(targetRow, column);
-		}
-	}
-	else
-	{
-		for (int column = sourceColumn; column >= targetColumn; column--)
-		{
-			showHiddenTile(targetRow, column);
-		}
-	}
-}
-
-void onMouseClick(double &mx, double &my)
-{
-	mx -= (g_gl_width / 2.0f) - (tileWidth / 2.0f);
-
-	float x, y;
-	int finalX, finalY;
-
-	isometricToCartesian(mx, my, x, y);
-
-	getTileCoordinates(x, y, finalX, finalY);
-
-	if (finalY >= rows || finalX >= columns || finalY < 0 || finalX < 0)
+	if (map[row][column][0] == map[row][column][1])
 	{
 		return;
 	}
 
-	showHiddenTile(finalY, finalX);
-
-	showTilePath(currentRow, currentColumn, finalY, finalX);
-
-	currentRow = finalY;
-	currentColumn = finalX;
-
-	cout << "currentRow: " << currentRow << " - currentColumn: " << currentColumn << endl;
+	map[row][column][0] = map[row][column][1];
 }
 
 void calculateDrawPosition(int column, int row, float &targetx, float &targety)
@@ -251,14 +181,11 @@ int main()
 	restart_gl_log();
 	start_gl();
 
-	// glEnable(GL_DEPTH_TEST); // enable depth-testing
-	// glDepthFunc(GL_LESS);
-
 	GLuint tex;
 	loadTexture(tex, "texture.png");
 
 	GLuint tex2;
-	loadTexture(tex2, "spritesheet.png");
+	loadTexture(tex2, "spritesheet-teste.png");
 
 	GLfloat tileVertices[] = {
 		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
@@ -271,11 +198,11 @@ int main()
 
 	GLfloat charVertices[] = {
 		0.0f, 0.0f, 0.0f, 0.0f,
-		65.0f, 0.0f, 0.333f, 0.0f,
+		65.0f, 0.0f, 0.03333333333f, 0.0f,
 		0.0f, 106.25f, 0.0f, 0.25f,
-		65.0f, 0.0f, 0.333f, 0.0f,
+		65.0f, 0.0f, 0.03333333333f, 0.0f,
 		0.0f, 106.25f, 0.0f, 0.25f,
-		65.0f, 106.25f, 0.333f, 0.25f};
+		65.0f, 106.25f, 0.03333333333f, 0.25f};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
 
@@ -365,50 +292,34 @@ int main()
 	{
 		glfwPollEvents();
 
-		// double mx, my;
-		// glfwGetCursorPos(g_window, &mx, &my);
-
-		// const int state = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
-
 		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_RIGHT))
 		{
 			stepsX += 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.50f;
 		}
-		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_LEFT))
+		else if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_LEFT))
 		{
 			stepsX -= 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.25f;
 		}
-		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_UP))
+		else if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_UP))
 		{
 			stepsY -= 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.75f;
 		}
-		if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_DOWN))
+		else if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_DOWN))
 		{
 			stepsY += 0.05f;
-			charOffsetX += (1.0f / 3.0f);
+			charOffsetX += (1.0f / 30.0f);
 			charOffsetY = 0.0f;
 		}
-		if (GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_LEFT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_RIGHT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_UP) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_DOWN))
+		else if (GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_LEFT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_RIGHT) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_UP) && GLFW_RELEASE == glfwGetKey(g_window, GLFW_KEY_DOWN))
 		{
-			charOffsetX = (1.0f / 3.0f);
+			charOffsetX = (1.0f / 30.0f) * 10;
 		}
-
-		// if (state == GLFW_PRESS)
-		// {
-		// 	pressedMouse = true;
-		// }
-		// else if (state == GLFW_RELEASE && pressedMouse)
-		// {
-		// 	onMouseClick(mx, my);
-
-		// 	pressedMouse = false;
-		// }
 
 		glClearColor(0.69f, 0.91f, 0.98f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -441,6 +352,7 @@ int main()
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, tex);
+
 				glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
 				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), spriteOffsetY);
 				glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), 0.0f);
@@ -455,12 +367,22 @@ int main()
 
 		float charX, charY;
 
-		currentColumn = (int)stepsX;
-		currentRow = (int)stepsY;
+		if (isValidStep((int)stepsY, (int)stepsX))
+		{
+			currentColumn = (int)stepsX;
+			currentRow = (int)stepsY;
+		}
+		else
+		{
+			stepsX = currentColumn;
+			stepsY = currentRow;
+		}
+
+		showHiddenTile(currentRow, currentColumn);
 
 		calculateDrawPosition(currentColumn, currentRow, charX, charY);
 
-		matrix = glm::translate(glm::mat4(1), glm::vec3(charX + ((tileWidth / 3.5f)), charY - (tileHeight * 0.75f), 1));
+		matrix = glm::translate(glm::mat4(1), glm::vec3(charX + ((tileWidth / 4.2f)), charY - tileHeight, 1));
 		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
 
 		glActiveTexture(GL_TEXTURE0);
