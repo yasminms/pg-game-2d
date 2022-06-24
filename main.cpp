@@ -77,7 +77,7 @@ void generateMap()
 		for (int column = 0; column < columns; column++)
 		{
 			map[row][column][0] = TileType::Hidden; // tile type
-			map[row][column][1] = TileType::Grass;	 // hidden tile
+			map[row][column][1] = TileType::Grass;	// hidden tile
 		}
 	}
 
@@ -238,8 +238,8 @@ void verifyTile()
 		if (keyFound)
 		{
 			startNextLevel();
-			return;
 		}
+		return;
 		break;
 	}
 
@@ -293,8 +293,7 @@ int main()
 		0.0f, tileHeight, 0.0f, 0.25f,
 		tileWidth, 0.0f, 0.03333333333f, 0.0f,
 		0.0f, tileHeight, 0.0f, 0.25f,
-		tileWidth, tileHeight, 0.03333333333f, 0.25f
-	};
+		tileWidth, tileHeight, 0.03333333333f, 0.25f};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
 
@@ -347,7 +346,6 @@ int main()
 
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
-
 
 	char vertex_shader[1024 * 256];
 	char fragment_shader[1024 * 256];
@@ -507,19 +505,22 @@ int main()
 
 		if (!isAlive())
 		{
-            char playAgain = 'n';
+			char playAgain = 'n';
 
-            cout << "\n-------- GAME OVER --------" << endl;
-            cout << "> Score: " << score << endl;
-            cout << "Restart game? y/n" << endl;
+			cout << "\n-------- GAME OVER --------" << endl;
+			cout << "> Score: " << score << endl;
+			cout << "Restart game? y/n" << endl;
 
-            cin >> playAgain;
+			cin >> playAgain;
 
-            if (playAgain == 'y') {
-                restartGame();
-            } else {
-                glfwSetWindowShouldClose(g_window, GLFW_TRUE);
-            }
+			if (playAgain == 'y')
+			{
+				restartGame();
+			}
+			else
+			{
+				glfwSetWindowShouldClose(g_window, GLFW_TRUE);
+			}
 		}
 
 		verifyTile();
