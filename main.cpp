@@ -24,21 +24,27 @@ int g_gl_height = 600;
 
 enum TileType
 {
-	Initial = 0,
+	Hidden = 0,
 	Grass = 1,
 	Healing = 2,
 	Damage = 3,
 	Key = 4,
-	Default = 5
+	Initial = 5,
+	End = 6
 };
 
 const int columns = 9, rows = 9;
 
-const int healingAmount = 3, damageAmount = 6, keyAmount = 1;
+const int healingAmount = 3, damageAmount = 6, keyAmount = 1, maxHealth = 3;
 
-int health = 2, currentRow = 8, currentColumn = 0;
+int currentRow = rows - 1, currentColumn = 0;
+
+int score = 0, health = maxHealth;
+
+bool keyFound = false;
 
 float charOffsetY = 0.0f, charOffsetX = 0.0f;
+float stepsX = currentColumn, stepsY = currentRow;
 
 float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
@@ -70,16 +76,16 @@ void generateMap()
 	{
 		for (int column = 0; column < columns; column++)
 		{
-			map[row][column][0] = TileType::Initial; // tile type
+			map[row][column][0] = TileType::Hidden; // tile type
 			map[row][column][1] = TileType::Grass;	 // hidden tile
 		}
 	}
 
-	map[rows - 1][0][0] = TileType::Default;
-	map[rows - 1][0][1] = TileType::Default;
+	map[rows - 1][0][0] = TileType::Initial;
+	map[rows - 1][0][1] = TileType::Initial;
 
-	map[0][columns - 1][0] = TileType::Default;
-	map[0][columns - 1][1] = TileType::Default;
+	map[0][columns - 1][0] = TileType::End;
+	map[0][columns - 1][1] = TileType::End;
 }
 
 bool isValidStep(int row, int column)
@@ -91,7 +97,7 @@ void getTileTexture(TileType tileType, float &spriteOffsetY)
 {
 	switch (tileType)
 	{
-	case TileType::Initial:
+	case TileType::Hidden:
 		spriteOffsetY = 0.0f;
 		break;
 	case TileType::Grass:
@@ -106,11 +112,14 @@ void getTileTexture(TileType tileType, float &spriteOffsetY)
 	case TileType::Key:
 		spriteOffsetY = 0.6668f;
 		break;
-	case TileType::Default:
+	case TileType::Initial:
+		spriteOffsetY = 0.8335f;
+		break;
+	case TileType::End:
 		spriteOffsetY = 0.8335f;
 		break;
 	default:
-		cout << "Tile Type not found!";
+		cout << "Tile type not found!";
 		break;
 	}
 }
@@ -169,14 +178,88 @@ int loadTexture(unsigned int &texture, char *filename)
 	stbi_image_free(data);
 }
 
+void resetGame()
+{
+	generateMap();
+
+	generateSpecialTiles(TileType::Healing, healingAmount);
+	generateSpecialTiles(TileType::Damage, damageAmount);
+	generateSpecialTiles(TileType::Key, keyAmount);
+
+	keyFound = false;
+	health = maxHealth;
+
+	currentRow = rows - 1;
+	currentColumn = 0;
+
+	stepsX = currentColumn;
+	stepsY = currentRow;
+}
+
+void startNextLevel()
+{
+	cout << "Starting new level" << endl;
+
+	resetGame();
+
+	score++;
+
+	cout << "Score: " << score << endl;
+}
+
+void restartGame()
+{
+	resetGame();
+
+	score = 0;
+}
+
+void verifyTile()
+{
+	TileType currentTile = (TileType)map[currentRow][currentColumn][0];
+
+	if (currentTile == TileType::Grass || currentTile == TileType::Initial)
+	{
+		return;
+	}
+
+	switch (currentTile)
+	{
+	case TileType::Healing:
+		health++;
+		break;
+	case TileType::Damage:
+		health--;
+		break;
+	case TileType::Key:
+		keyFound = true;
+		break;
+	case TileType::End:
+		if (keyFound)
+		{
+			startNextLevel();
+			return;
+		}
+		break;
+	}
+
+	map[currentRow][currentColumn][0] = TileType::Grass;
+	map[currentRow][currentColumn][1] = TileType::Grass;
+
+	cout << "Health: " << health << endl;
+	cout << "Key found: " << keyFound << endl;
+}
+
+bool isAlive()
+{
+	return health > 0;
+}
+
 int main()
 {
 	srand(time(NULL));
 
-	generateMap();
-	generateSpecialTiles(TileType::Healing, healingAmount);
-	generateSpecialTiles(TileType::Damage, damageAmount);
-	generateSpecialTiles(TileType::Key, keyAmount);
+	resetGame();
 
 	restart_gl_log();
 	start_gl();
@@ -204,8 +287,18 @@ int main()
 		0.0f, 106.25f, 0.0f, 0.25f,
 		65.0f, 106.25f, 0.03333333333f, 0.25f};
 
+	GLfloat itemVertices[] = {
+		0.0f, 0.0f, 0.0f, 0.0f,
+		tileWidth, 0.0f, 0.03333333333f, 0.0f,
+		0.0f, tileHeight, 0.0f, 0.25f,
+		tileWidth, 0.0f, 0.03333333333f, 0.0f,
+		0.0f, tileHeight, 0.0f, 0.25f,
+		tileWidth, tileHeight, 0.03333333333f, 0.25f
+	};
+
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
 
+	// tilemap
 	GLuint VBO, VAO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -221,6 +314,7 @@ int main()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLfloat *)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+	// character
 	GLuint VBO2, VAO2;
 
 	glGenVertexArrays(1, &VAO2);
@@ -236,6 +330,24 @@ int main()
 
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+
+	// items
+	GLuint VBO3, VAO3;
+
+	glGenVertexArrays(1, &VAO3);
+	glGenBuffers(1, &VBO3);
+
+	glBindVertexArray(VAO3);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO3);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(charVertices), charVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 
 	char vertex_shader[1024 * 256];
 	char fragment_shader[1024 * 256];
@@ -283,7 +395,6 @@ int main()
 	}
 
 	bool pressedMouse = false;
-	float stepsX = currentColumn, stepsY = currentRow;
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -393,6 +504,25 @@ int main()
 		glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), charOffsetX);
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		if (!isAlive())
+		{
+            char playAgain = 'n';
+
+            cout << "\n-------- GAME OVER --------" << endl;
+            cout << "> Score: " << score << endl;
+            cout << "Restart game? y/n" << endl;
+
+            cin >> playAgain;
+
+            if (playAgain == 'y') {
+                restartGame();
+            } else {
+                glfwSetWindowShouldClose(g_window, GLFW_TRUE);
+            }
+		}
+
+		verifyTile();
 
 		glBindVertexArray(0);
 
