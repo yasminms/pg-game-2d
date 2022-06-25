@@ -5,6 +5,7 @@ layout ( location = 1 ) in vec2 vTexture;
 
 uniform mat4 projection;
 uniform mat4 matrix;
+uniform float layer_z;
 
 out vec2 text_map;
 
