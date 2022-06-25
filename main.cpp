@@ -29,7 +29,8 @@ enum TileType
 	Hidden = 0,
 	Grass = 1,
 	Initial = 2,
-	End = 3
+	End = 3,
+	Explosion = 4
 };
 
 enum ItemType
@@ -51,7 +52,7 @@ const int timeDelay = 167;
 
 const int columns = 9, rows = 9;
 
-const int healingAmount = 3, damageAmount = 10, keyAmount = 1, maxHealth = 1;
+const int healingAmount = 3, damageAmount = 7, keyAmount = 1, maxHealth = 3;
 
 int currentRow = rows - 1, currentColumn = 0;
 
@@ -131,13 +132,16 @@ void getTileTexture(TileType tileType, float &spriteOffsetY)
 		spriteOffsetY = 0.0f;
 		break;
 	case TileType::Grass:
-		spriteOffsetY = 0.333f;
+		spriteOffsetY = 0.25f;
 		break;
 	case TileType::Initial:
-		spriteOffsetY = 0.666f;
+		spriteOffsetY = 0.5f;
 		break;
 	case TileType::End:
-		spriteOffsetY = 0.666f;
+		spriteOffsetY = 0.5f;
+		break;
+	case TileType::Explosion:
+		spriteOffsetY = 0.75f;
 		break;
 	default:
 		cout << "Tile type not found!";
@@ -274,6 +278,7 @@ void verifyItem()
 		health++;
 		break;
 	case ItemType::Damage:
+		map[currentRow][currentColumn] = TileType::Explosion;
 		health--;
 		break;
 	case ItemType::Key:
@@ -331,11 +336,11 @@ int main()
 
 	GLfloat tileVertices[] = {
 		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
-		tileWidth, (tileHeight / 2.0f), 1, (0.333f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, (0.333f / 2.0f),	 // left
-		(tileWidth / 2.0f), tileHeight, 0.5f, 0.333f,		 // bottom
-		tileWidth, (tileHeight / 2.0f), 1, (0.333f / 2.0f), // right
-		0.0f, (tileHeight / 2.0f), 0.0f, (0.333f / 2.0f)	 // left
+		tileWidth, (tileHeight / 2.0f), 1, (0.25f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.25f / 2.0f),	 // left
+		(tileWidth / 2.0f), tileHeight, 0.5f, 0.25f,		 // bottom
+		tileWidth, (tileHeight / 2.0f), 1, (0.25f / 2.0f), // right
+		0.0f, (tileHeight / 2.0f), 0.0f, (0.25f / 2.0f)	 // left
 	};
 
 	GLfloat charVertices[] = {
