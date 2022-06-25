@@ -47,6 +47,8 @@ enum ItemStatus
 	Visible = 1
 };
 
+const int timeDelay = 167;
+
 const int columns = 9, rows = 9;
 
 const int healingAmount = 3, damageAmount = 6, keyAmount = 1, maxHealth = 3;
@@ -261,7 +263,7 @@ void verifyItem()
 		specialItemTimer++;
 	}
 
-	if (currentItem == ItemType::Empty || specialItemTimer % 167 != 0)
+	if (currentItem == ItemType::Empty || specialItemTimer % timeDelay != 0)
 	{
 		return;
 	}
@@ -279,15 +281,8 @@ void verifyItem()
 		break;
 	}
 
-	// items[currentRow][currentColumn][1] = ItemStatus::Visible;
-
-	// if (specialItemTimer % 97 == 0)
-	// {
 	items[currentRow][currentColumn][0] = ItemType::Empty;
 	items[currentRow][currentColumn][1] = ItemStatus::Invisible;
-	// }
-
-	// specialItemTimer++;
 
 	cout << "Health: " << health << endl;
 	cout << "Key found: " << keyFound << endl;
