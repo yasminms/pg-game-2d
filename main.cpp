@@ -51,7 +51,7 @@ const int timeDelay = 167;
 
 const int columns = 9, rows = 9;
 
-const int healingAmount = 3, damageAmount = 6, keyAmount = 1, maxHealth = 3;
+const int healingAmount = 3, damageAmount = 10, keyAmount = 1, maxHealth = 1;
 
 int currentRow = rows - 1, currentColumn = 0;
 
@@ -326,6 +326,9 @@ int main()
 	GLuint tex3;
 	loadTexture(tex3, "items.png");
 
+	GLuint tex4;
+	loadTexture(tex4, "gameover.png");
+
 	GLfloat tileVertices[] = {
 		(tileWidth / 2.0f), 0.0f, 0.5f, 0.0f,				 // top
 		tileWidth, (tileHeight / 2.0f), 1, (0.333f / 2.0f), // right
@@ -351,6 +354,15 @@ int main()
 		tileWidth, 0.0f, 1.0f, 0.0f,
 		0.0f, tileHeight, 0.0f, (1.0f / 3.0f),
 		tileWidth, tileHeight, 1.0f, (1.0f / 3.0f)
+	};
+
+	GLfloat screenVertices[] = {
+		0.0f, 0.0f, 0.0f, 0.0f,
+		g_gl_width, 0.0f, 1.0f, 0.0f,
+		0.0f, g_gl_height, 0.0f, 1.0f,
+		g_gl_width, 0.0f, 1.0f, 0.0f,
+		0.0f, g_gl_height, 0.0f, 1.0f,
+		g_gl_width, g_gl_height, 1.0f, 1.0f
 	};
 
 	glm::mat4 projection = glm::ortho(0.0f, (float)g_gl_width, (float)g_gl_height, 0.0f, -1.0f, 1.0f);
@@ -398,6 +410,57 @@ int main()
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO3);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(itemVertices), itemVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// health
+	GLuint VBO4, VAO4;
+
+	glGenVertexArrays(1, &VAO4);
+	glGenBuffers(1, &VBO4);
+
+	glBindVertexArray(VAO4);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO4);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(itemVertices), itemVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// key
+	GLuint VBO5, VAO5;
+
+	glGenVertexArrays(1, &VAO5);
+	glGenBuffers(1, &VBO5);
+
+	glBindVertexArray(VAO5);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO5);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(itemVertices), itemVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// game over
+	GLuint VBO6, VAO6;
+
+	glGenVertexArrays(1, &VAO6);
+	glGenBuffers(1, &VBO6);
+
+	glBindVertexArray(VAO6);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO6);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(screenVertices), screenVertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid *)0);
 	glEnableVertexAttribArray(0);
@@ -488,7 +551,7 @@ int main()
 			charOffsetX = (1.0f / 30.0f) * 10;
 		}
 
-		glClearColor(0.69f, 0.91f, 0.98f, 1.0f);
+		glClearColor(1.00f, 0.98f, 0.74f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glViewport(0, 0, g_gl_width * 2, g_gl_height * 2);
@@ -595,24 +658,72 @@ int main()
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 			}
 		}
+	
+		glBindVertexArray(VAO4);
+
+		float targetX = -(tileWidth/4.0f);
+
+		for (int i = 0; i < health; i++)
+		{
+			float spriteOffsetY = 0.0f;
+			
+			getItemTexture(ItemType::Healing, spriteOffsetY);
+
+			matrix = glm::translate(glm::mat4(1), glm::vec3(targetX, g_gl_height - 70, 0));
+			glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, tex3);
+
+			glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+			glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), spriteOffsetY);
+			glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), 0.0f);
+
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
+			targetX += (tileWidth / 2.5f);
+		}
+
+		glBindVertexArray(VAO5);
+
+		if (keyFound)
+		{
+			float spriteOffsetY = 0.0f;
+			
+			getItemTexture(ItemType::Key, spriteOffsetY);
+
+			matrix = glm::translate(glm::mat4(1), glm::vec3(g_gl_width - (tileWidth/1.35f), g_gl_height - 70, 0));
+			glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, tex3);
+
+			glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+			glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), spriteOffsetY);
+			glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), 0.0f);
+
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+
+		glBindVertexArray(VAO6);
 
 		if (!isAlive())
 		{
-			string playAgain = "n";
+			matrix = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+			glUniformMatrix4fv(glGetUniformLocation(shader_programme, "matrix"), 1, GL_FALSE, glm::value_ptr(matrix));
 
-			cout << "\n-------- GAME OVER --------" << endl;
-			cout << "> Score: " << score << endl;
-			cout << "Restart game? y/n" << endl;
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, tex4);
 
-			cin >> playAgain;
+			glUniform1i(glGetUniformLocation(shader_programme, "sprite"), 0);
+			glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_y"), 0.0f);
+			glUniform1f(glGetUniformLocation(shader_programme, "sprite_offset_x"), 0.0f);
 
-			if (playAgain == "y")
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
+			if (GLFW_PRESS == glfwGetKey(g_window, GLFW_KEY_X))
 			{
 				restartGame();
-			}
-			else
-			{
-				glfwSetWindowShouldClose(g_window, GLFW_TRUE);
 			}
 		}
 
