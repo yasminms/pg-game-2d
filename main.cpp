@@ -41,6 +41,12 @@ enum ItemType
 	Block = 4
 };
 
+enum ItemStatus
+{
+	Invisible = 0,
+	Visible = 1
+};
+
 const int columns = 9, rows = 9;
 
 const int healingAmount = 3, damageAmount = 6, keyAmount = 1, maxHealth = 3;
@@ -57,11 +63,13 @@ float stepsX = currentColumn, stepsY = currentRow;
 float tileWidth = (float)(g_gl_width / columns);
 float tileHeight = (float)(g_gl_height / rows);
 
+int specialItemTimer = 2;
+
 GLFWwindow *g_window = NULL;
 glm::mat4 matrix = glm::mat4(1);
 
 int map[rows][columns];
-int items[rows][columns];
+int items[rows][columns][2];
 
 void generateItems(ItemType itemType, int amount)
 {
@@ -73,9 +81,9 @@ void generateItems(ItemType itemType, int amount)
 		{
 			randomRow = rand() % rows;
 			randomColumn = rand() % columns;
-		} while (items[randomRow][randomColumn] != ItemType::Empty);
+		} while (items[randomRow][randomColumn][0] != ItemType::Empty);
 
-		items[randomRow][randomColumn] = itemType;
+		items[randomRow][randomColumn][0] = itemType;
 	}
 }
 
@@ -85,12 +93,13 @@ void clearItems()
 	{
 		for (int column = 0; column < columns; column++)
 		{
-			items[row][column] = ItemType::Empty;
+			items[row][column][0] = ItemType::Empty;
+			items[row][column][1] = ItemStatus::Invisible;
 		}
 	}
 
-	items[rows - 1][0] = ItemType::Block;
-	items[0][columns - 1] = ItemType::Block;
+	items[rows - 1][0][0] = ItemType::Block;
+	items[0][columns - 1][0] = ItemType::Block;
 }
 
 void generateMap()
@@ -244,9 +253,15 @@ void restartGame()
 
 void verifyItem()
 {
-	ItemType currentItem = (ItemType) items[currentRow][currentColumn];
+	ItemType currentItem = (ItemType) items[currentRow][currentColumn][0];
+	ItemStatus currentStatus = (ItemStatus) items[currentRow][currentColumn][1];
 
-	if (currentItem == ItemType::Empty)
+	if (currentStatus == ItemStatus::Visible)
+	{
+		specialItemTimer++;
+	}
+
+	if (currentItem == ItemType::Empty || specialItemTimer % 167 != 0)
 	{
 		return;
 	}
@@ -264,7 +279,15 @@ void verifyItem()
 		break;
 	}
 
-	items[currentRow][currentColumn] = ItemType::Empty;
+	// items[currentRow][currentColumn][1] = ItemStatus::Visible;
+
+	// if (specialItemTimer % 97 == 0)
+	// {
+	items[currentRow][currentColumn][0] = ItemType::Empty;
+	items[currentRow][currentColumn][1] = ItemStatus::Invisible;
+	// }
+
+	// specialItemTimer++;
 
 	cout << "Health: " << health << endl;
 	cout << "Key found: " << keyFound << endl;
@@ -283,6 +306,11 @@ void verifyWin()
 bool isAlive()
 {
 	return health > 0;
+}
+
+void showInvisibleItem(int currentRow, int currentColumn)
+{
+	items[currentRow][currentColumn][1] = ItemStatus::Visible;
 }
 
 int main()
@@ -507,7 +535,7 @@ int main()
 
 		float charX, charY;
 
-		if (isValidStep((int)stepsY, (int)stepsX))
+		if (isValidStep((int)stepsY, (int)stepsX) && items[currentRow][currentColumn][0] == ItemType::Empty)
 		{
 			currentColumn = (int)stepsX;
 			currentRow = (int)stepsY;
@@ -534,6 +562,8 @@ int main()
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
+		showInvisibleItem(currentRow, currentColumn);
+
 		verifyItem();
 
 		glBindVertexArray(VAO3);
@@ -544,9 +574,10 @@ int main()
 			{
 				float spriteOffsetY = 0.0f;
 				
-				ItemType itemType = (ItemType) items[row][column];
+				ItemType itemType = (ItemType) items[row][column][0];
+				ItemStatus itemStatus = (ItemStatus) items[row][column][1];
 
-				if (itemType == ItemType::Empty || itemType == ItemType::Block)
+				if (itemType == ItemType::Empty || itemType == ItemType::Block || itemStatus == ItemStatus::Invisible)
 				{
 					continue;
 				}
@@ -572,7 +603,7 @@ int main()
 
 		if (!isAlive())
 		{
-			char playAgain = 'n';
+			string playAgain = "n";
 
 			cout << "\n-------- GAME OVER --------" << endl;
 			cout << "> Score: " << score << endl;
@@ -580,7 +611,7 @@ int main()
 
 			cin >> playAgain;
 
-			if (playAgain == 'y')
+			if (playAgain == "y")
 			{
 				restartGame();
 			}
